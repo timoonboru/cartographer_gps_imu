@@ -152,32 +152,6 @@ LocalTrajectoryBuilder::AddAccumulatedRangeData(
 
   //LOG(INFO)<<"odometry_correction_"<<odometry_correction_;
   const transform::Rigid3d model_prediction = pose_estimate_;
-  // TODO(whess): Prefer IMU over odom orientation if configured?
-  //mnf use imu
-
-/*
-  double yaw_real_time_orientiation =
-      ::cartographer::transform::GetYaw(real_time_orientiation_);
-  double yaw_odometry_prediction =
-      ::cartographer::transform::GetYaw(odometry_prediction.rotation());
-
-
-  double result = (yaw_real_time_orientiation - yaw_odometry_prediction)
-          *(yaw_real_time_orientiation - yaw_odometry_prediction);
-
-  if(result < 0.00081)
-  {
-      real_time_orientiation_ = odometry_prediction.rotation();
-  }
-  else
-  {
-    LOG(INFO)<<"change!!!";
-  }
-
-    const transform::Rigid3d& pose_prediction =
-    transform::Rigid3d(odometry_prediction.translation(),
-      real_time_orientiation_);
-      */
 
   Eigen::Quaterniond good_orientiation;
 
@@ -324,12 +298,34 @@ void LocalTrajectoryBuilder::AddOdometerData(
     const auto& previous_odometry_state = odometry_state_tracker_.newest();
     const transform::Rigid3d delta =
         previous_odometry_state.odometer_pose.inverse() * odometer_pose;
-    const transform::Rigid3d new_pose =
-        //previous_odometry_state.state_pose * delta;
-        previous_odometry_state.odometer_pose * delta;  //mnf why??
+    /*   
+    transform::Rigid3d good_pose; 
+    
+    good_pose = previous_odometry_state.state_pose * delta;
 
-    LOG(INFO) << "odometer_pose" << previous_odometry_state.odometer_pose;
-    LOG(INFO) << "state_pose" << previous_odometry_state.state_pose;
+    double transform_x = previous_odometry_state.odometer_pose.translation().x() - 
+                    previous_odometry_state.state_pose.translation().x();
+
+    double transform_y = previous_odometry_state.odometer_pose.translation().y() - 
+                    previous_odometry_state.state_pose.translation().y();
+
+    if(fabs(transform_x) + fabs(transform_y) > 2.0)
+    {
+       good_pose = previous_odometry_state.odometer_pose * delta;
+    }
+
+    const transform::Rigid3d new_pose = good_pose;
+    */
+
+    double trans = delta.translation().x() * delta.translation().x() + delta.translation().y() * delta.translation().y();
+
+    //printf("delta.translation().x()  %.10lf \n",delta.translation().x());
+    //printf("delta.translation().y()  %.10lf \n",delta.translation().y());
+    //printf("trans  %.10lf \n",trans);
+
+    const transform::Rigid3d new_pose = previous_odometry_state.state_pose * delta;
+    //LOG(INFO) << "odometer_pose" << odometer_pose;
+    //LOG(INFO) << "pose_estimate_" << pose_estimate_;
 
     odometry_correction_ = pose_estimate_.inverse() * new_pose;
   }
@@ -348,7 +344,10 @@ void LocalTrajectoryBuilder::Predict(const common::Time time) {
   CHECK(imu_tracker_ != nullptr);
   CHECK_LE(time_, time);
   const double last_yaw = transform::GetYaw(imu_tracker_->orientation());
+  //LOG(INFO) << "before advance last_yaw" << last_yaw;
   imu_tracker_->Advance(time);
+  const double aft_last_yaw = transform::GetYaw(imu_tracker_->orientation());
+  //LOG(INFO) << "after advance last_yaw" << aft_last_yaw;
   if (time_ > common::Time::min()) {
     const double delta_t = common::ToSeconds(time - time_);
     // Constant velocity model.

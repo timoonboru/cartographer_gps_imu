@@ -157,11 +157,23 @@ void SensorBridge::HandleImuMessage(const string& sensor_id,
     first_tag_imu_ = false;
   }
 
+  //mnf test
+  double yaw_first_time_orientiation_ =
+      ::cartographer::transform::GetYaw(first_time_orientiation_);
+
+  //LOG(INFO)<<"yaw_first_time_orientiation_"<<yaw_first_time_orientiation_;
+
+
   if((msg_orientiation_.x() != 0) || (msg_orientiation_.y() != 0) || (msg_orientiation_.z() != 0))
     real_time_orientiation_ = first_time_orientiation_.inverse() * msg_orientiation_ ;
+
+  double yaw_real_time_orientiation_ =
+      ::cartographer::transform::GetYaw(real_time_orientiation_);
+
+  //LOG(INFO)<<"real_time_orientiation_"<<yaw_real_time_orientiation_;
   // mnf first_time_orientiation_  --> T01
   // msg_orientiation_ --> T02
-  // real_time_orientiation_ -->T12 = T02 * T01^(-1)
+  // real_time_orientiation_ -->T12 = T01^(-1) * T02
 
   trajectory_builder_->AddImuData(
       sensor_id, time,
