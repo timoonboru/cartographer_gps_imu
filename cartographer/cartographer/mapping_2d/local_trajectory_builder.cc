@@ -323,7 +323,7 @@ void LocalTrajectoryBuilder::AddOdometerData(
     //printf("delta.translation().y()  %.10lf \n",delta.translation().y());
     //printf("trans  %.10lf \n",trans);
 
-    const transform::Rigid3d new_pose = previous_odometry_state.state_pose * delta;
+    const transform::Rigid3d new_pose = previous_odometry_state.odometer_pose * delta;
     //LOG(INFO) << "odometer_pose" << odometer_pose;
     //LOG(INFO) << "pose_estimate_" << pose_estimate_;
 
