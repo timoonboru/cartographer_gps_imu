@@ -331,6 +331,7 @@ void SensorBridge::HandleOdometryMessage(
    if (sensor_to_tracking != nullptr) {
     //mnf
     real_time_lat_ = (double)msg->pose.pose.position.x;
+
     real_time_lon_ = (double)msg->pose.pose.position.z;
     
     //printf("lat %.10lf \n",real_time_lat_);
@@ -349,24 +350,28 @@ void SensorBridge::HandleOdometryMessage(
     double dist = 0;
     double angle = 0;
     calDistanceStatic(real_time_lat_, real_time_lon_, first_lat_, first_lon_, &angle, &dist);
-       
+
     dist *= 1852;
 
+    //printf("dist   %.10lf \n",dist);
+    //printf("angle   %.10lf \n",angle);
+      
     double yaw_first_time_orientiation_ =
       ::cartographer::transform::GetYaw(first_time_orientiation_);
 
     double angle_diff = 0;
-    angle_diff = angle ;
-
+    //angle_diff = angle - 245;
+    angle_diff = angle;
     double relative_pose[2] = {0,0};
 
-    relative_pose[0] = dist * sin(angle_diff*M_PI/180.0 );
-    relative_pose[1] = dist * cos(angle_diff*M_PI/180.0 );
+    relative_pose[0] = dist * sin(angle_diff*M_PI/180.0  - yaw_first_time_orientiation_);
+    relative_pose[1] = dist * cos(angle_diff*M_PI/180.0  - yaw_first_time_orientiation_);
 
     //printf("senser bridge --> lat dist  %.10lf \n",relative_pose[0]);
     //printf("senser bridge --> lon dist  %.10lf \n",relative_pose[1]);
 
-    //printf("angle --> lon dist  %.10lf \n",angle);
+   // printf("angle   %.10lf \n",angle);
+   // printf("yaw_first_time_orientiation_   %.10lf \n",yaw_first_time_orientiation_);
     
     trajectory_builder_->AddOdometerData(
         sensor_id, time,
