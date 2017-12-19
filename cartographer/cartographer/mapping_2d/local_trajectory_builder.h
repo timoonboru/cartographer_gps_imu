@@ -112,6 +112,9 @@ class LocalTrajectoryBuilder {
   //Eigen::Quaterniond cartographer_orientiation_ = Eigen::Quaterniond(1.0,0,0,0);
   Eigen::Quaterniond real_time_orientiation_ = Eigen::Quaterniond(1.0,0,0,0);
 
+  int times_ = 0;
+  bool mode_odo_first_choice_ = 0;
+
 };
 
 }  // namespace mapping_2d

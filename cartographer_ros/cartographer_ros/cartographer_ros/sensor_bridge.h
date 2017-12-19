@@ -33,6 +33,7 @@
 #include "cartographer/common/math.h"
 #include <math.h>
 
+
 namespace cartographer_ros {
 
 // Converts ROS messages into SensorData in tracking frame for the MapBuilder.
@@ -79,7 +80,6 @@ class SensorBridge {
   double first_lon_ = 0;
   double real_time_lat_ = 0;
   double real_time_lon_ = 0;
-
 
 };
 

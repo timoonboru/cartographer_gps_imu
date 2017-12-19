@@ -55,9 +55,16 @@ class OdometryStateTracker {
   // Retrieves the most recent OdometryState. Must not be called when empty.
   const OdometryState& newest() const;
 
+  void GetVelocity(Eigen::Vector2d& velocity);
+
  private:
   OdometryStates odometry_states_;
   size_t window_size_;
+
+  Eigen::Vector2d velocity_ = Eigen::Vector2d::Zero();
+  transform::Rigid3d last_odometer_pose_ = transform::Rigid3d::Identity();
+  common::Time last_time_ = common::Time::min();
+
 };
 
 }  // namespace mapping

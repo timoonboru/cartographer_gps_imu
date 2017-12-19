@@ -46,6 +46,8 @@ find_package(catkin REQUIRED COMPONENTS ${PACKAGE_DEPENDENCIES})
 include(FindPkgConfig)
 pkg_search_module(YAMLCPP REQUIRED yaml-cpp>=0.5.1)
 
+find_package(OpenCV REQUIRED)
+
 find_package(LuaGoogle REQUIRED)
 find_package(PCL REQUIRED COMPONENTS common io)
 # Fix for PCL linking issue in Zesty, as in
