@@ -39,15 +39,29 @@ OdometryStateTracker::odometry_states() const {
 void OdometryStateTracker::AddOdometryState(
     const OdometryState& odometry_state) {
   odometry_states_.push_back(odometry_state);
+
+  double delta_t = common::ToSeconds(odometry_state.time - last_time_); 
+  velocity_ = (odometry_state.odometer_pose.translation().head<2>() -
+                           last_odometer_pose_.translation().head<2>()) /
+                          delta_t;
+
   while (odometry_states_.size() > window_size_) {
     odometry_states_.pop_front();
   }
+
+  last_odometer_pose_ = odometry_state.odometer_pose;
+  last_time_ = odometry_state.time;
 }
 
 bool OdometryStateTracker::empty() const { return odometry_states_.empty(); }
 
 const OdometryState& OdometryStateTracker::newest() const {
   return odometry_states_.back();
+}
+
+void OdometryStateTracker::GetVelocity(Eigen::Vector2d& velocity)
+{
+  velocity = velocity_;
 }
 
 }  // namespace mapping

@@ -364,14 +364,16 @@ void SensorBridge::HandleOdometryMessage(
     angle_diff = angle;
     double relative_pose[2] = {0,0};
 
-    relative_pose[0] = dist * sin(angle_diff*M_PI/180.0  - yaw_first_time_orientiation_);
-    relative_pose[1] = dist * cos(angle_diff*M_PI/180.0  - yaw_first_time_orientiation_);
+    relative_pose[0] = dist * sin(angle_diff*M_PI/180.0  + M_PI/2 + yaw_first_time_orientiation_);
+    relative_pose[1] = dist * cos(angle_diff*M_PI/180.0  + M_PI/2 + yaw_first_time_orientiation_);
+    //relative_pose[0] = dist * sin(angle_diff*M_PI/180.0  - yaw_first_time_orientiation_);
+    //relative_pose[0] = dist * cos(angle_diff*M_PI/180.0  - yaw_first_time_orientiation_);
 
     //printf("senser bridge --> lat dist  %.10lf \n",relative_pose[0]);
     //printf("senser bridge --> lon dist  %.10lf \n",relative_pose[1]);
 
-   // printf("angle   %.10lf \n",angle);
-   // printf("yaw_first_time_orientiation_   %.10lf \n",yaw_first_time_orientiation_);
+    //printf("angle   %.10lf \n",(angle_diff*M_PI/180.0  - yaw_first_time_orientiation_)/M_PI*180.0 );
+    //printf("yaw_first_time_orientiation_   %.10lf \n",yaw_first_time_orientiation_);
     
     trajectory_builder_->AddOdometerData(
         sensor_id, time,

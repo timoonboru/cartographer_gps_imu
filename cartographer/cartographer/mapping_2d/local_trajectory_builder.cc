@@ -62,9 +62,9 @@ void LocalTrajectoryBuilder::ScanMatch(
   transform::Rigid2d initial_ceres_pose = pose_prediction_2d;
   sensor::AdaptiveVoxelFilter adaptive_voxel_filter(
       options_.adaptive_voxel_filter_options());
-  const sensor::PointCloud filtered_point_cloud_in_tracking_2d =
-      adaptive_voxel_filter.Filter(range_data_in_tracking_2d.returns);
-
+  //const sensor::PointCloud filtered_point_cloud_in_tracking_2d =
+  //    adaptive_voxel_filter.Filter(range_data_in_tracking_2d.returns);
+  const sensor::PointCloud filtered_point_cloud_in_tracking_2d = range_data_in_tracking_2d.returns;
   double score_real_time = 0;
   if (options_.use_online_correlative_scan_matching()) {
     score_real_time = real_time_correlative_scan_matcher_.Match(
@@ -155,6 +155,7 @@ LocalTrajectoryBuilder::AddAccumulatedRangeData(
   //LOG(INFO)<<"odometry_correction_"<<odometry_correction_;
   const transform::Rigid3d model_prediction = pose_estimate_;
 
+/*
   Eigen::Quaterniond good_orientiation;
 
   good_orientiation = odometry_prediction.rotation();
@@ -179,6 +180,8 @@ LocalTrajectoryBuilder::AddAccumulatedRangeData(
   const transform::Rigid3d& pose_prediction =
     transform::Rigid3d(odometry_prediction.translation(),
       good_orientiation);
+*/
+  const transform::Rigid3d& pose_prediction = odometry_prediction;
 
 
   //mnf use imu
@@ -200,10 +203,13 @@ LocalTrajectoryBuilder::AddAccumulatedRangeData(
     return nullptr;
   }
 
+
+
   ScanMatch(time, pose_prediction, tracking_to_tracking_2d,
             range_data_in_tracking_2d, &pose_estimate_);
   odometry_correction_ = transform::Rigid3d::Identity();
-  if (!odometry_state_tracker_.empty()) {
+
+  if (!odometry_state_tracker_.empty() && !mode_odo_first_choice_) {
     // We add an odometry state, so that the correction from the scan matching
     // is not removed by the next odometry data we get.
     odometry_state_tracker_.AddOdometryState(
@@ -212,17 +218,19 @@ LocalTrajectoryBuilder::AddAccumulatedRangeData(
              odometry_prediction.inverse() * pose_estimate_});
   }
 
+
   // Improve the velocity estimate.
   if (last_scan_match_time_ > common::Time::min() &&
-      time > last_scan_match_time_) {
+      time > last_scan_match_time_  && times_ != 299 ) {
     const double delta_t = common::ToSeconds(time - last_scan_match_time_);
     // This adds the observed difference in velocity that would have reduced the
     // error to zero.
     velocity_estimate_ += (pose_estimate_.translation().head<2>() -
                            model_prediction.translation().head<2>()) /
                           delta_t;
+    last_scan_match_time_ = time_;                      
+    
   }
-  last_scan_match_time_ = time_;
 
   // Remove the untracked z-component which floats around 0 in the UKF.
   const auto translation = pose_estimate_.translation();
@@ -296,16 +304,17 @@ void LocalTrajectoryBuilder::AddOdometerData(
   }
 
   Predict(time);
+  transform::Rigid3d odometer_pose_with_imu = transform::Rigid3d(odometer_pose.translation(),imu_tracker_->orientation());
   if (!odometry_state_tracker_.empty()) {
     const auto& previous_odometry_state = odometry_state_tracker_.newest();
 
-    transform::Rigid3d odometer_pose_with_imu = transform::Rigid3d(odometer_pose.translation(),real_time_orientiation_);
+    
     const transform::Rigid3d delta =
-        previous_odometry_state.odometer_pose.inverse() * odometer_pose;
+        previous_odometry_state.odometer_pose.inverse() * odometer_pose_with_imu;
 
     //transform::Rigid3d odometer_pose_with_imu = transform::Rigid3d(odometer_pose.translation(),real_time_orientiation_);
     
-    const transform::Rigid3d new_pose = previous_odometry_state.odometer_pose * delta;
+    const transform::Rigid3d new_pose = previous_odometry_state.state_pose * delta;
       
     double transform_x = odometer_pose.translation().x() - 
                     pose_estimate_.translation().x(); 
@@ -317,37 +326,33 @@ void LocalTrajectoryBuilder::AddOdometerData(
 
     //LOG(WARNING) <<  " odometer_pose.translation() " << odometer_pose.translation().x() <<"and"<< odometer_pose.translation().y();
     //LOG(WARNING) <<  " pose_estimate_.translation() " << pose_estimate_.translation().x() <<"and"<< pose_estimate_.translation().y();
-    LOG(WARNING) <<  " dist = " << dist<< " times_ = "<<times_; 
-    if(dist  > 50)
-      times_ = 500;
+    //LOG(WARNING) <<  " dist = " << dist<< " times_ = "<<times_; 
+
+    if( dist  > 5 )
+    {
+      mode_odo_first_choice_ = 1;
+      times_ = 300;
+      //odometry_correction_ = pose_estimate_.inverse() * odometer_pose_with_imu;
+
+    }
 
     if(times_ > 1 )
     {
-      odometry_correction_ = pose_estimate_.inverse() * new_pose;
+      odometry_correction_ = pose_estimate_.inverse() * odometer_pose_with_imu;
+      //pose_estimate_ = odometer_pose_with_imu;
+      //odometry_correction_ = transform::Rigid3d::Identity();
       times_ --;
-    }
+    } 
     else
     {
-      odometry_correction_ = transform::Rigid3d::Identity();
+      mode_odo_first_choice_ = 0;
+      odometry_correction_ = pose_estimate_.inverse() * new_pose;
     }
 
-
-    
-  
-    //double trans = delta.translation().x() * delta.translation().x() + delta.translation().y() * delta.translation().y();
-
-    //printf("delta.translation().x()  %.10lf \n",delta.translation().x());
-    //printf("delta.translation().y()  %.10lf \n",delta.translation().y());
-    //printf("trans  %.10lf \n",trans);
-
-
-    //LOG(INFO) << "odometer_pose" << odometer_pose;
-    //LOG(INFO) << "pose_estimate_" << pose_estimate_;
-
-    //odometry_correction_ = pose_estimate_.inverse() * new_pose;
   }
   odometry_state_tracker_.AddOdometryState(
-      {time, odometer_pose, pose_estimate_ * odometry_correction_});
+    {time, odometer_pose_with_imu, pose_estimate_ * odometry_correction_});
+
 }
 /*
   Predict(time);
