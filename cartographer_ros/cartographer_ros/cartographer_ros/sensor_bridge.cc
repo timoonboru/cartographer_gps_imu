@@ -325,10 +325,10 @@ SensorBridge::SensorBridge(
 void SensorBridge::HandleOdometryMessage(
     const string& sensor_id, const nav_msgs::Odometry::ConstPtr& msg) {
   const carto::common::Time time = FromRos(msg->header.stamp);
-  const auto sensor_to_tracking = tf_bridge_.LookupToTracking(
-      time, CheckNoLeadingSlash(msg->header.frame_id));
+  //const auto sensor_to_tracking = tf_bridge_.LookupToTracking(
+  //    time, CheckNoLeadingSlash(msg->header.frame_id));
   //LOG(INFO) << "warning@@@@@@@@@@@@@@@@@@@@" << msg->header.frame_id << "end";
-   if (sensor_to_tracking != nullptr) {
+  // if (sensor_to_tracking != nullptr) {
     //mnf
     real_time_lat_ = (double)msg->pose.pose.position.x;
 
@@ -380,15 +380,6 @@ void SensorBridge::HandleOdometryMessage(
         carto::transform::Rigid3d({relative_pose[0],relative_pose[1],0},
           {1.0,0,0,0}));
 
-    //mnf
-    /*
-    trajectory_builder_->AddOdometerData(
-        sensor_id, time,
-        ToRigid3d(msg->pose.pose) * sensor_to_tracking->inverse());
-    */
-  }
-
-  //LOG(INFO) <<"HERE IS void SensorBridge::HandleOdometryMessage";
 }
 
 void SensorBridge::HandleImuMessage(const string& sensor_id,

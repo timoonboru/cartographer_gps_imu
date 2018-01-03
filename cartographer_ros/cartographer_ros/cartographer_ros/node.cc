@@ -240,9 +240,9 @@ void Node::SpinOccupancyGridThreadForever() {
         return;
       }
     }
-    if (occupancy_grid_publisher_.getNumSubscribers() == 0) {
-      continue;
-    }
+    //if (occupancy_grid_publisher_.getNumSubscribers() == 0) {
+    //  continue;
+    //}
     const auto occupancy_grid = map_builder_bridge_.BuildOccupancyGrid();
     if (occupancy_grid != nullptr) {
       occupancy_grid_publisher_.publish(*occupancy_grid);

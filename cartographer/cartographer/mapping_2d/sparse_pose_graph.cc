@@ -222,10 +222,10 @@ void SparsePoseGraph::AddScan(
   }
 */
 
-  AddWorkItem([=]() REQUIRES(mutex_) {
-    ComputeConstraintsForScan(trajectory_id, insertion_submaps,
-                              newly_finished_submap, pose);
-  });
+  //AddWorkItem([=]() REQUIRES(mutex_) {
+  //  ComputeConstraintsForScan(trajectory_id, insertion_submaps,
+  //                            newly_finished_submap, pose);
+  //});
 }
 
 void SparsePoseGraph::AddWorkItem(std::function<void()> work_item) {

@@ -199,7 +199,7 @@ class SparsePoseGraph : public mapping::SparsePoseGraph {
   std::map<int, size_t> reverse_connected_components_;
 
   // Data that are currently being shown.
-  mapping::NestedVectorsById<mapping::TrajectoryNode, mapping::NodeId>
+  mapping::NestedVectorsById_30<mapping::TrajectoryNode, mapping::NodeId>
       trajectory_nodes_ GUARDED_BY(mutex_);
   int num_trajectory_nodes_ GUARDED_BY(mutex_) = 0;
 
