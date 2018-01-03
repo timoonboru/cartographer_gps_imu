@@ -27,6 +27,7 @@
           -configuration_basename sick_imu.lua"
       output="screen">
     <remap from="imu" to="/imu/data" />
+    <remap from="odom" to="/gps_location" />
   </node>
 
   <node name="rviz" pkg="rviz" type="rviz" required="true"
