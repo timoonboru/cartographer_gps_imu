@@ -65,6 +65,10 @@ Eigen::AlignedBox2f ComputeMapBoundingBox2D(
 
       yaw = ::cartographer::transform::GetYaw(node.pose.rotation());
 
+      //double angle_mnf  = yaw / 3.14159 * 180;
+
+      //LOG(INFO) << "angle_mnf = " << angle_mnf << "end";
+
 
       //if(tag == 0)
       //{
@@ -115,41 +119,10 @@ void BuildOccupancyGrid2D(
     const ::cartographer::mapping_2d::proto::SubmapsOptions& submaps_options,
     ::nav_msgs::OccupancyGrid* const occupancy_grid) {
   namespace carto = ::cartographer;
-  //std::vector<std::vector<::cartographer::mapping::TrajectoryNode>> all_trajectory_nodes_cut;
 
-/*
-  int sizeTrajectory = all_trajectory_nodes.size();
-  int sizeNode = all_trajectory_nodes[0].size();
-
-  LOG(INFO)<<"In the first all_trajectory_nodes :"<< sizeTrajectory <<"," << sizeNode;
-
-  std::vector<std::vector<::cartographer::mapping::TrajectoryNode>>::iterator it;
-  if(sizeNode < 10)
-  {
-    for(it = all_trajectory_nodes[0].begin(); it != all_trajectory_nodes[0].end(); ++it)
-       all_trajectory_nodes_cut[0].push_back(*it);
-  }
-  else
-  {
-    for(it = all_trajectory_nodes[0].end() - 10; it != all_trajectory_nodes[0].end(); ++it)
-       all_trajectory_nodes_cut[0].push_back(*it);
-  }
-*/
-  // all_trajectory_nodes_cut.at(0).clear();
-  // all_trajectory_nodes_cut.at(0).insert(all_trajectory_nodes_cut.at(0).end(),all_trajectory_nodes.at(0).begin(),all_trajectory_nodes.at(0).end());
-  /*
-  if(all_trajectory_nodes[0].size() < 10)
-  {
-     std::copy(all_trajectory_nodes[0].begin(),all_trajectory_nodes[0].end(),all_trajectory_nodes_cut[0].begin());
-       LOG(INFO)<<"copy right";
-  }
-  else
-  {
-     std::copy(all_trajectory_nodes[0].end() - 10,all_trajectory_nodes[0].end(),all_trajectory_nodes_cut[0].begin());
-  }
- */
   const carto::mapping_2d::MapLimits map_limits =
       ComputeMapLimits(submaps_options.resolution(), all_trajectory_nodes);
+      
   carto::mapping_2d::ProbabilityGrid probability_grid(map_limits);
   carto::mapping_2d::RangeDataInserter range_data_inserter(
       submaps_options.range_data_inserter_options());
