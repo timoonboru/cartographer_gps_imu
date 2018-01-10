@@ -57,7 +57,7 @@ TRAJECTORY_BUILDER_2D = {
   num_odometry_states = 1000,
 
   submaps = {
-    resolution = 0.05,
+    resolution = 0.1,
     num_range_data = 30,
     range_data_inserter = {
       insert_free_space = true,

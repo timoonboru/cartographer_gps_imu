@@ -25,6 +25,9 @@ namespace cartographer_ros {
 
 namespace {
 
+  int num = 0;
+  int num_max = 0;
+
 void WriteOccupancyGridToPgm(const ::nav_msgs::OccupancyGrid& grid,
                              const std::string& filename) {
   //LOG(INFO) << "Saving map to '" << filename << "'...";
@@ -37,15 +40,26 @@ void WriteOccupancyGridToPgm(const ::nav_msgs::OccupancyGrid& grid,
   for (size_t y = 0; y < grid.info.height; ++y) {
     for (size_t x = 0; x < grid.info.width; ++x) {
       const size_t i = x + (grid.info.height - y - 1) * grid.info.width;
-      if (grid.data[i] >= 0 && grid.data[i] <= 100) {
-        pgm_file.put((100 - grid.data[i]) * 255 / 100);
+      //if (grid.data[i] >= 0 && grid.data[i] <= 100) {
+      //  pgm_file.put((100 - grid.data[i]) * 255 / 100);
+      if (grid.data[i] > 50 && grid.data[i] < 100) {
+        pgm_file.put( ( 100 - grid.data[i] ) * 255 / 100);
+
+        num ++;
       } else {
         // We choose a value between the free and occupied threshold.
+        //constexpr uint8_t kUnknownValue = 128;
         constexpr uint8_t kUnknownValue = 128;
         pgm_file.put(kUnknownValue);
       }
     }
   }
+
+  if(num > num_max)
+  {
+    num_max = num;
+  }
+  num = 0;
   pgm_file.close();
   CHECK(pgm_file) << "Writing '" << filename << "' failed.";
 }

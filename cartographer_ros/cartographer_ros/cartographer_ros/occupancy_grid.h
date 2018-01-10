@@ -26,6 +26,10 @@
 #include "cartographer/mapping_2d/proto/submaps_options.pb.h"
 #include "nav_msgs/OccupancyGrid.h"
 
+#include <opencv/cv.h>
+#include <opencv2/highgui/highgui.hpp>
+
+
 namespace cartographer_ros {
 
 void BuildOccupancyGrid2D(

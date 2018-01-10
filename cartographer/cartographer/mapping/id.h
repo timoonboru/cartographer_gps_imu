@@ -74,7 +74,7 @@ class NestedVectorsById_30 {
                     static_cast<int>(data_[trajectory_id].size())};
     data_[trajectory_id].push_back(value);
 
-    if(data_[trajectory_id].size() > 15)
+    if(data_[trajectory_id].size() > 10)
     {
          typename std::vector<ValueType>::iterator it = data_[trajectory_id].begin();
          data_[trajectory_id].erase(it);

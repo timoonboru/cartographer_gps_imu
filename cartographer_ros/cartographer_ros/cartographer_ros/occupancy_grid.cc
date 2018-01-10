@@ -26,18 +26,51 @@
 #include "cartographer_ros/time_conversion.h"
 #include "glog/logging.h"
 
+#include <sstream> 
+#include <string> 
+
+#include <math.h>
+
+#define PI 3.14159262
+
+using namespace std; 
+
+using namespace cv;
+
 namespace {
 
 double lidar_location_x;
 double lidar_location_y;
-//double box_max_x;
+
 double box_min_x;
-//double box_max_y;
+
 double box_min_y;
 
 double x,y,z,w;
 
 double yaw;
+
+
+double NormAngle(double angle)
+{
+  while(angle > PI)
+    angle = angle - 2*PI;
+  while(angle < -PI)
+    angle = angle + 2*PI; 
+
+  return angle;
+}
+
+//----------------------> angle = 0
+void CalAngleAndDist(int shipRow, int shipCol, int obstacleRow, int obstacleCol, double& angle, double& dist)
+{
+  double vectorY = -(obstacleRow - shipRow);
+  double vectorX = obstacleCol - shipCol;
+  dist = sqrt(vectorY*vectorY + vectorX*vectorX);
+  angle = atan(vectorY/vectorX);
+  if(vectorY < 0)
+    angle = angle - PI;
+}
 
 Eigen::AlignedBox2f ComputeMapBoundingBox2D(
     const std::vector<std::vector<::cartographer::mapping::TrajectoryNode>>&
@@ -65,39 +98,12 @@ Eigen::AlignedBox2f ComputeMapBoundingBox2D(
 
       yaw = ::cartographer::transform::GetYaw(node.pose.rotation());
 
-
-      //if(tag == 0)
-      //{
-        //box_max_x = range_data.returns[0].x();
-        //box_min_x = range_data.returns[0].x();
-        //box_max_y = range_data.returns[0].y();
-        //box_min_y = range_data.returns[0].y();
-      //}
-      //tag++;
-
       for (const Eigen::Vector3f& hit : range_data.returns) {
         bounding_box.extend(hit.head<2>());
-
-        //if(hit.x() > box_max_x)
-        //     box_max_x = hit.x();
-        //if(hit.x() < box_min_x)
-        //     box_min_x = hit.x();
-        //if(hit.y() > box_max_y)
-        //     box_max_y = hit.y();
-        //if(hit.y() < box_min_y)
-        //     box_min_y = hit.y();
       }
       for (const Eigen::Vector3f& miss : range_data.misses) {
         bounding_box.extend(miss.head<2>());
 
-        //if(miss.x() > box_max_x)
-        //     box_max_x = miss.x();
-        //if(miss.x() < box_min_x)
-        //     box_min_x = miss.x();
-        //if(miss.y() > box_max_y)
-        //     box_max_y = miss.y();
-        //if(miss.y() < box_min_y)
-        //     box_min_y = miss.y();
       }
     }
   }
@@ -105,6 +111,8 @@ Eigen::AlignedBox2f ComputeMapBoundingBox2D(
 }
 
 }  // namespace
+
+int map_num = 0;
 
 namespace cartographer_ros {
 
@@ -115,39 +123,7 @@ void BuildOccupancyGrid2D(
     const ::cartographer::mapping_2d::proto::SubmapsOptions& submaps_options,
     ::nav_msgs::OccupancyGrid* const occupancy_grid) {
   namespace carto = ::cartographer;
-  //std::vector<std::vector<::cartographer::mapping::TrajectoryNode>> all_trajectory_nodes_cut;
 
-/*
-  int sizeTrajectory = all_trajectory_nodes.size();
-  int sizeNode = all_trajectory_nodes[0].size();
-
-  LOG(INFO)<<"In the first all_trajectory_nodes :"<< sizeTrajectory <<"," << sizeNode;
-
-  std::vector<std::vector<::cartographer::mapping::TrajectoryNode>>::iterator it;
-  if(sizeNode < 10)
-  {
-    for(it = all_trajectory_nodes[0].begin(); it != all_trajectory_nodes[0].end(); ++it)
-       all_trajectory_nodes_cut[0].push_back(*it);
-  }
-  else
-  {
-    for(it = all_trajectory_nodes[0].end() - 10; it != all_trajectory_nodes[0].end(); ++it)
-       all_trajectory_nodes_cut[0].push_back(*it);
-  }
-*/
-  // all_trajectory_nodes_cut.at(0).clear();
-  // all_trajectory_nodes_cut.at(0).insert(all_trajectory_nodes_cut.at(0).end(),all_trajectory_nodes.at(0).begin(),all_trajectory_nodes.at(0).end());
-  /*
-  if(all_trajectory_nodes[0].size() < 10)
-  {
-     std::copy(all_trajectory_nodes[0].begin(),all_trajectory_nodes[0].end(),all_trajectory_nodes_cut[0].begin());
-       LOG(INFO)<<"copy right";
-  }
-  else
-  {
-     std::copy(all_trajectory_nodes[0].end() - 10,all_trajectory_nodes[0].end(),all_trajectory_nodes_cut[0].begin());
-  }
- */
   const carto::mapping_2d::MapLimits map_limits =
       ComputeMapLimits(submaps_options.resolution(), all_trajectory_nodes);
   carto::mapping_2d::ProbabilityGrid probability_grid(map_limits);
@@ -182,19 +158,6 @@ void BuildOccupancyGrid2D(
   occupancy_grid->info.resolution = resolution;
   occupancy_grid->info.width = cell_limits.num_y_cells;
   occupancy_grid->info.height = cell_limits.num_x_cells;
-/*
-  occupancy_grid->info.origin.position.x =
-      probability_grid.limits().max().x() -
-      (offset.y() + cell_limits.num_y_cells) * resolution;
-  occupancy_grid->info.origin.position.y =
-      probability_grid.limits().max().y() -
-      (offset.x() + cell_limits.num_x_cells) * resolution;
-  occupancy_grid->info.origin.position.z = 0.;
-  occupancy_grid->info.origin.orientation.w = offset.y();
-  occupancy_grid->info.origin.orientation.x = probability_grid.limits().max().x();
-  occupancy_grid->info.origin.orientation.y = probability_grid.limits().max().y();
-  occupancy_grid->info.origin.orientation.z = offset.x();
-*/
 
   occupancy_grid->info.origin.position.x =::cartographer::common::RoundToInt((lidar_location_x - box_min_x) / resolution);
   occupancy_grid->info.origin.position.y = cell_limits.num_x_cells - ::cartographer::common::RoundToInt((lidar_location_y - box_min_y) / resolution);
@@ -206,22 +169,87 @@ void BuildOccupancyGrid2D(
   occupancy_grid->data.resize(cell_limits.num_x_cells * cell_limits.num_y_cells,
                               -1);
 
+  Mat mat_occupancy_grid = Mat::zeros(cell_limits.num_x_cells,cell_limits.num_y_cells,CV_8UC1);
+
   for (const Eigen::Array2i& xy_index :
        carto::mapping_2d::XYIndexRangeIterator(cell_limits)) {
+
+    
     if (probability_grid.IsKnown(xy_index + offset)) {
       const int value = carto::common::RoundToInt(
           (probability_grid.GetProbability(xy_index + offset) -
            carto::mapping::kMinProbability) *
-          100. /
+          255. /
           (carto::mapping::kMaxProbability - carto::mapping::kMinProbability));
       CHECK_LE(0, value);
-      CHECK_GE(100, value);
-      occupancy_grid->data[(cell_limits.num_x_cells - xy_index.x()) *
-                               cell_limits.num_y_cells -
-                           xy_index.y() - 1] = value;
+      CHECK_GE(255, value);
+      if(value > 130)
+      {
+        mat_occupancy_grid.at<uchar>(xy_index.x(),cell_limits.num_y_cells - 1 - xy_index.y()) = 255;
+      } 
+      else
+        mat_occupancy_grid.at<uchar>(xy_index.x(),cell_limits.num_y_cells - 1 - xy_index.y()) = 0;
     }
   }
-  cartographer_ros::WriteOccupancyGridToPgmAndYaml(*occupancy_grid,"/home/zkma/OUTMAP/outmap");
+
+  Mat mat_dilate;
+  Mat mat_erode;
+
+  Mat mat_counters = Mat::zeros(cell_limits.num_x_cells ,cell_limits.num_y_cells,CV_8UC1 );
+  vector<vector<Point> > contours;
+
+  Mat element = getStructuringElement(MORPH_RECT, Size(5, 5));
+
+  dilate(mat_occupancy_grid, mat_dilate, element);
+  erode(mat_dilate, mat_erode, element);
+
+  findContours( mat_erode, contours, 
+        CV_RETR_EXTERNAL , CV_CHAIN_APPROX_TC89_L1  );
+
+  int shipRow = occupancy_grid->info.origin.position.y;
+  int shipCol = occupancy_grid->info.origin.position.x;
+
+  for(int i = 0; i < contours.size(); i++)
+  {
+    if( contours[i].size() < 10)
+      continue;
+    for(int j = 0; j < contours[i].size(); j++)
+    {
+      int col = contours[i][j].x;
+      int row = contours[i][j].y;
+      if( row >= cell_limits.num_x_cells || col >= cell_limits.num_y_cells)
+      {
+        LOG(INFO) << " row (height) = "<< x <<" col (width) = "<< y;  
+        LOG(INFO) << " cell_limits.num_x_cells (height) = "<< cell_limits.num_x_cells 
+                  << " cell_limits.num_y_cells (width) = "<< cell_limits.num_y_cells ;  
+      }
+      double dist = 0;
+      double angle = 0;
+      CalAngleAndDist(shipRow,shipCol,row,col,angle,dist);
+      dist = dist * 0.1; 
+      angle = yaw - angle;
+      angle = NormAngle(angle);
+
+      //LOG(INFO) << " shipRow = "<< shipRow  <<" shipCol = "<< shipCol; 
+      //LOG(INFO) << " row = "<< row <<" col = "<< col; 
+      //LOG(INFO) << " yaw = "<< yaw * 180/PI ; 
+      //LOG(WARNING) << " angle = "<< angle * 180/PI <<" dist = "<< dist;  
+
+      mat_counters.at<uchar>(row,col) = 255;
+    }
+  }
+
+  string mat_path = "/home/zkma/OUTMAP/"; 
+  stringstream ss;
+  string s_map_num;
+  ss << map_num;
+  ss >> s_map_num;
+  map_num++;
+
+  
+  imwrite( mat_path + s_map_num +".jpg",mat_counters);
+  //cartographer_ros::WriteOccupancyGridToPgmAndYaml(*occupancy_grid,"/home/zkma/OUTMAP/outmap");
+
 }
 
 ::cartographer::mapping_2d::MapLimits ComputeMapLimits(

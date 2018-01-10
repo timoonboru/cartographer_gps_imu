@@ -46,7 +46,6 @@ find_package(catkin REQUIRED COMPONENTS ${PACKAGE_DEPENDENCIES})
 include(FindPkgConfig)
 pkg_search_module(YAMLCPP REQUIRED yaml-cpp>=0.5.1)
 
-find_package(OpenCV REQUIRED)
 
 find_package(LuaGoogle REQUIRED)
 find_package(PCL REQUIRED COMPONENTS common io)
@@ -87,6 +86,7 @@ catkin_package(
     EIGEN3
     Boost
     urdfdom_headers
+    OpenCV
   INCLUDE_DIRS "."
   LIBRARIES ${PROJECT_NAME}
 )
@@ -100,6 +100,12 @@ add_library(${PROJECT_NAME} ${ALL_SRCS})
 add_subdirectory("cartographer_ros")
 
 target_link_libraries(${PROJECT_NAME} PUBLIC cartographer)
+
+# OpenCV
+set(OpenCV_DIR /usr/share/OpenCV)
+find_package(OpenCV REQUIRED)
+include_directories(${OpenCV_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} PUBLIC ${OpenCV_LIBS})
 
 # YAML
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${YAMLCPP_INCLUDE_DIRS})
