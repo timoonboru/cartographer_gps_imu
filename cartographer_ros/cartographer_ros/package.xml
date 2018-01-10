@@ -36,6 +36,8 @@
   <build_depend>g++-static</build_depend>
   <build_depend>protobuf-dev</build_depend>
   <build_depend>python-sphinx</build_depend>
+  <build_depend>qt_build</build_depend>
+  <build_depend>libqt4-dev</build_depend>
 
   <depend>cartographer</depend>
   <depend>cartographer_ros_msgs</depend>
@@ -60,6 +62,7 @@
   <depend>urdf</depend>
   <depend>visualization_msgs</depend>
   <depend>yaml-cpp</depend>
+
 
   <test_depend>rosunit</test_depend>
 

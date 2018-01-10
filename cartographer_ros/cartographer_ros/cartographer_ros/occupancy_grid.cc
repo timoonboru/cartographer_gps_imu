@@ -31,6 +31,8 @@
 
 #include <math.h>
 
+#include <QUdpSocket>
+
 #define PI 3.14159262
 
 using namespace std; 
@@ -209,6 +211,19 @@ void BuildOccupancyGrid2D(
   int shipRow = occupancy_grid->info.origin.position.y;
   int shipCol = occupancy_grid->info.origin.position.x;
 
+  stringstream ss;
+  string s_yaw;
+  ss << yaw;
+  ss >> s_yaw;
+  ss.clear();
+
+  string SENS = "$SENS;0,0;" + s_yaw + ",0,0,0,0,0,0,0,0;";
+
+  QUdpSocket *udp;
+  udp = new QUdpSocket();
+
+
+
   for(int i = 0; i < contours.size(); i++)
   {
     if( contours[i].size() < 10)
@@ -234,20 +249,38 @@ void BuildOccupancyGrid2D(
       //LOG(INFO) << " row = "<< row <<" col = "<< col; 
       //LOG(INFO) << " yaw = "<< yaw * 180/PI ; 
       //LOG(WARNING) << " angle = "<< angle * 180/PI <<" dist = "<< dist;  
+      string s_dist;
+      ss << dist;
+      ss >> s_dist;
+      ss.clear();
 
-      mat_counters.at<uchar>(row,col) = 255;
+      string s_angle;
+      ss << angle;
+      ss >> s_angle;
+      ss.clear();
+
+      SENS = SENS + s_dist + "," + s_angle + ";";
+
+      //mat_counters.at<uchar>(row,col) = 255;
     }
   }
 
   string mat_path = "/home/zkma/OUTMAP/"; 
-  stringstream ss;
+  
   string s_map_num;
   ss << map_num;
   ss >> s_map_num;
+  ss.clear();
+
   map_num++;
 
+  //LOG(INFO) << SENS;
+  QByteArray datagram = QString::fromStdString(SENS).toLatin1();
+  udp->writeDatagram(datagram, QHostAddress("192.168.1.131"), 5566);
+
+
   
-  imwrite( mat_path + s_map_num +".jpg",mat_counters);
+  //imwrite( mat_path + s_map_num +".jpg",mat_counters);
   //cartographer_ros::WriteOccupancyGridToPgmAndYaml(*occupancy_grid,"/home/zkma/OUTMAP/outmap");
 
 }

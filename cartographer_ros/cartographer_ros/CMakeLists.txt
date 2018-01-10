@@ -101,6 +101,16 @@ add_subdirectory("cartographer_ros")
 
 target_link_libraries(${PROJECT_NAME} PUBLIC cartographer)
 
+# QT
+find_package(qt_build REQUIRED)
+rosbuild_prepare_qt4(QtCore QtGui QtNetwork)
+
+QT4_ADD_RESOURCES(QT_RESOURCES_CPP ${QT_RESOURCES})
+QT4_WRAP_UI(QT_FORMS_HPP ${QT_FORMS})
+QT4_WRAP_CPP(QT_MOC_HPP ${QT_MOC})
+
+target_link_libraries(${PROJECT_NAME} PUBLIC ${QT_LIBRARIES})
+
 # OpenCV
 set(OpenCV_DIR /usr/share/OpenCV)
 find_package(OpenCV REQUIRED)
