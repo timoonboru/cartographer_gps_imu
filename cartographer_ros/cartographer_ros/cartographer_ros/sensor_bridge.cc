@@ -349,8 +349,8 @@ void SensorBridge::HandleOdometryMessage(
 
     double dist = 0;
     double angle = 0;
-    //calDistanceStatic(real_time_lat_, real_time_lon_, 29.981219600, 122.2003547783, &angle, &dist);
-    calDistanceStatic(real_time_lat_, real_time_lon_, first_lat_, first_lon_, &angle, &dist);
+    calDistanceStatic(real_time_lat_, real_time_lon_, 29.981219600, 122.2003547783, &angle, &dist);
+    //calDistanceStatic(real_time_lat_, real_time_lon_, first_lat_, first_lon_, &angle, &dist);
     dist *= 1852;
 
     //printf("dist   %.10lf \n",dist);
