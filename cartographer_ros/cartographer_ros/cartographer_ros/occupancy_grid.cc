@@ -69,8 +69,11 @@ void CalAngleAndDist(int shipRow, int shipCol, int obstacleRow, int obstacleCol,
   double vectorY = -(obstacleRow - shipRow);
   double vectorX = obstacleCol - shipCol;
   dist = sqrt(vectorY*vectorY + vectorX*vectorX);
-  angle = atan(vectorY/vectorX);
-  if(vectorY < 0)
+  angle = atan(vectorY/vectorX); // -PI/2 ~ +PI/2
+  if( vectorY < 0 && angle > 0)
+    angle = angle - PI;
+
+  if( vectorY > 0 && angle < 0)
     angle = angle - PI;
 }
 
@@ -293,7 +296,8 @@ void BuildOccupancyGrid2D(
       ComputeMapBoundingBox2D(all_trajectory_nodes);
   // Add some padding to ensure all rays are still contained in the map after
   // discretization.
-  const float kPadding = 3.f * resolution;
+  //const float kPadding = 3.f * resolution;
+  const float kPadding = 1.f * resolution;
 
   bounding_box.min() -= kPadding * Eigen::Vector2f::Ones();
   bounding_box.max() += kPadding * Eigen::Vector2f::Ones();

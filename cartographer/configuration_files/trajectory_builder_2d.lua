@@ -13,7 +13,7 @@
 -- limitations under the License.
 
 TRAJECTORY_BUILDER_2D = {
-  use_imu_data = true,
+  use_imu_data = false,
   min_range = 0.,
   max_range = 50.,
   min_z = -0.8,
