@@ -21,6 +21,8 @@
 #include "cartographer/common/make_unique.h"
 #include "cartographer/sensor/range_data.h"
 
+#include "cartographer/common/lua_parameter_dictionary_test_helpers.h"
+
 namespace cartographer {
 namespace mapping_2d {
 
@@ -284,6 +286,24 @@ void LocalTrajectoryBuilder::AddImuData(
     const Eigen::Vector3d& angular_velocity,const Eigen::Quaterniond& orientiation) {//mnf
   CHECK(options_.use_imu_data()) << "An unexpected IMU packet was added.";
 
+  if (!pose_tracker_) {
+    auto parameter_dictionary = common::MakeDictionary(R"text(
+        return {
+            orientation_model_variance = 5e-3,
+            position_model_variance = 0.00654766,
+            velocity_model_variance = 0.53926,
+            imu_gravity_time_constant = 1e9,
+            imu_gravity_variance = 0,
+            num_odometry_states = 1,
+        }
+        )text");
+    const kalman_filter::proto::PoseTrackerOptions options =
+        kalman_filter::CreatePoseTrackerOptions(parameter_dictionary.get());
+
+    pose_tracker_ = common::make_unique<kalman_filter::PoseTracker>(
+        options,time);
+  }
+
   InitializeImuTracker(time);
 
   Predict(time);
@@ -293,6 +313,10 @@ void LocalTrajectoryBuilder::AddImuData(
 
   imu_tracker_->AddImuLinearAccelerationObservation(linear_acceleration,real_time_orientiation_);
   imu_tracker_->AddImuAngularVelocityObservation(angular_velocity);
+
+  pose_tracker_->AddImuLinearAccelerationObservation(
+      time,linear_acceleration,real_time_orientiation_);
+  pose_tracker_->AddImuAngularVelocityObservation(time,angular_velocity);
 }
 
 void LocalTrajectoryBuilder::AddOdometerData(
@@ -303,8 +327,24 @@ void LocalTrajectoryBuilder::AddOdometerData(
     return;
   }
 
+  if (!pose_tracker_) {
+    LOG(INFO) << "PoseTracker not yet initialized.";
+    return;
+  }
+
   Predict(time);
   transform::Rigid3d odometer_pose_with_imu = transform::Rigid3d(odometer_pose.translation(),imu_tracker_->orientation());
+
+  pose_tracker_->AddPoseObservation(
+      time, odometer_pose_with_imu,
+      Eigen::Matrix<double, 6, 6>::Identity() * 1e-6);
+  transform::Rigid3d actual;
+  kalman_filter::PoseCovariance covariance;
+  pose_tracker_->GetPoseEstimateMeanAndCovariance(time, &actual, &covariance);
+
+  LOG(WARNING) <<  " odometer_pose_with_imu = " << odometer_pose_with_imu; 
+  LOG(WARNING) <<  " actual = " << actual; 
+
   if (!odometry_state_tracker_.empty()) {
     const auto& previous_odometry_state = odometry_state_tracker_.newest();
 
@@ -354,19 +394,7 @@ void LocalTrajectoryBuilder::AddOdometerData(
 
 
 }
-/*
-  Predict(time);
-  if (!odometry_state_tracker_.empty()) {
-    const auto& previous_odometry_state = odometry_state_tracker_.newest();
-    const transform::Rigid3d delta =
-        previous_odometry_state.odometer_pose.inverse() * odometer_pose;
-    const transform::Rigid3d new_pose =
-        previous_odometry_state.state_pose * delta;
-    odometry_correction_ = pose_estimate_.inverse() * new_pose;
-  }
-  odometry_state_tracker_.AddOdometryState(
-      {time, odometer_pose, pose_estimate_ * odometry_correction_});
-      */
+
 
 void LocalTrajectoryBuilder::InitializeImuTracker(const common::Time time) {
   if (imu_tracker_ == nullptr) {

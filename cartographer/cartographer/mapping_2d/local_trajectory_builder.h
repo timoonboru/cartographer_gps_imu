@@ -31,6 +31,8 @@
 #include "cartographer/sensor/voxel_filter.h"
 #include "cartographer/transform/rigid_transform.h"
 
+#include "cartographer/kalman_filter/pose_tracker.h"
+
 namespace cartographer {
 namespace mapping_2d {
 
@@ -114,6 +116,8 @@ class LocalTrajectoryBuilder {
 
   int times_ = 0;
   bool mode_odo_first_choice_ = 0;
+
+  std::unique_ptr<kalman_filter::PoseTracker> pose_tracker_;
 
 };
 
