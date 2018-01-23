@@ -22,6 +22,8 @@ set(CARTOGRAPHER_PATCH_VERSION 0)
 set(CARTOGRAPHER_VERSION ${CARTOGRAPHER_MAJOR_VERSION}.${CARTOGRAPHER_MINOR_VERSION}.${CARTOGRAPHER_PATCH_VERSION})
 set(CARTOGRAPHER_SOVERSION ${CARTOGRAPHER_MAJOR_VERSION}.${CARTOGRAPHER_MINOR_VERSION})
 
+
+
 include("${PROJECT_SOURCE_DIR}/cmake/functions.cmake")
 google_initialize_cartographer_project()
 google_enable_testing()
@@ -150,6 +152,12 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
   "${GMOCK_INCLUDE_DIRS}")
 target_link_libraries(${PROJECT_NAME} PUBLIC ${GMOCK_LIBRARY})
+
+# OpenCV
+set(OpenCV_DIR /usr/share/OpenCV)
+find_package(OpenCV REQUIRED)
+include_directories(${OpenCV_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} PUBLIC ${OpenCV_LIBS})
 
 set(TARGET_COMPILE_FLAGS "${TARGET_COMPILE_FLAGS} ${GOOG_CXX_FLAGS}")
 set_target_properties(${PROJECT_NAME} PROPERTIES

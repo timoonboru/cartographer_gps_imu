@@ -23,6 +23,14 @@
 
 #include "cartographer/common/lua_parameter_dictionary_test_helpers.h"
 
+#include <iostream>
+#include <fstream> 
+
+
+using namespace std; 
+using namespace cv;
+
+
 namespace cartographer {
 namespace mapping_2d {
 
@@ -289,14 +297,27 @@ void LocalTrajectoryBuilder::AddImuData(
   if (!pose_tracker_) {
     auto parameter_dictionary = common::MakeDictionary(R"text(
         return {
-            orientation_model_variance = 5e-3,
-            position_model_variance = 0.00654766,
-            velocity_model_variance = 0.53926,
-            imu_gravity_time_constant = 1e9,
-            imu_gravity_variance = 0,
+            orientation_model_variance = 1e-8,
+            position_model_variance = 1e-8,
+            velocity_model_variance = 1e-8,
+            imu_gravity_time_constant = 100,
+            imu_gravity_variance = 1e-9,
             num_odometry_states = 1,
         }
         )text");
+
+    /*
+trajectory_builder_3d.lua:
+   pose_tracker = {
+      orientation_model_variance = 5e-3,
+      position_model_variance = 0.00654766,
+      velocity_model_variance = 0.53926,
+      -- This disables gravity alignment in local SLAM.
+      imu_gravity_time_constant = 1e9,
+      imu_gravity_variance = 0,
+      num_odometry_states = 1,
+    },
+*/
     const kalman_filter::proto::PoseTrackerOptions options =
         kalman_filter::CreatePoseTrackerOptions(parameter_dictionary.get());
 
@@ -319,6 +340,11 @@ void LocalTrajectoryBuilder::AddImuData(
   pose_tracker_->AddImuAngularVelocityObservation(time,angular_velocity);
 }
 
+
+cv::Mat gps_out_ori = cv::Mat::zeros(1500,1500,CV_8UC1);
+cv::Mat gps_out_kalman = cv::Mat::zeros(1500,1500,CV_8UC1);
+int tim = 0;
+
 void LocalTrajectoryBuilder::AddOdometerData(
     const common::Time time, const transform::Rigid3d& odometer_pose) {
   if (imu_tracker_ == nullptr) {
@@ -333,17 +359,42 @@ void LocalTrajectoryBuilder::AddOdometerData(
   }
 
   Predict(time);
-  transform::Rigid3d odometer_pose_with_imu = transform::Rigid3d(odometer_pose.translation(),imu_tracker_->orientation());
+  
 
   pose_tracker_->AddPoseObservation(
-      time, odometer_pose_with_imu,
+      time, odometer_pose,
       Eigen::Matrix<double, 6, 6>::Identity() * 1e-6);
+
   transform::Rigid3d actual;
   kalman_filter::PoseCovariance covariance;
-  pose_tracker_->GetPoseEstimateMeanAndCovariance(time, &actual, &covariance);
+  pose_tracker_->GetPoseEstimateMeanAndCovariance(time , &actual, &covariance);
 
-  LOG(WARNING) <<  " odometer_pose_with_imu = " << odometer_pose_with_imu; 
+  transform::Rigid3d odometer_pose_with_imu = transform::Rigid3d(actual.translation(),imu_tracker_->orientation());
+/*
+
+  LOG(WARNING) <<  " odometer_pose = " << odometer_pose; 
   LOG(WARNING) <<  " actual = " << actual; 
+
+  Eigen::Vector3d  actual_t = actual.translation();
+  Eigen::Vector3d  gps_t = odometer_pose.translation();
+
+  double actual_x = actual_t.x();
+  double actual_y = actual_t.y();
+
+  double odometer_pose_x = gps_t.x();
+  double odometer_pose_y = gps_t.y();
+
+  int gps_lat = (int)(odometer_pose_x*10 +250 );
+  int gps_lon = (int)(odometer_pose_y*10 +250 );
+  gps_out_ori.at<uchar>(gps_lat,gps_lon) = 255;
+
+  int gps_lat_kal = (int)(actual_x*10 +250 );
+  int gps_lon_kal = (int)(actual_y*10 +250 );
+  gps_out_kalman.at<uchar>(gps_lat_kal,gps_lon_kal) = 255;
+
+  imwrite("/home/zkma/OUTMAP2/gps_out_ori.jpg",gps_out_ori);
+  imwrite("/home/zkma/OUTMAP2/gps_out_kalman.jpg",gps_out_kalman);
+*/
 
   if (!odometry_state_tracker_.empty()) {
     const auto& previous_odometry_state = odometry_state_tracker_.newest();

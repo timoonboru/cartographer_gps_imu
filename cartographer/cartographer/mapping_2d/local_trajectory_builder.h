@@ -33,6 +33,10 @@
 
 #include "cartographer/kalman_filter/pose_tracker.h"
 
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv/cv.h>
+
 namespace cartographer {
 namespace mapping_2d {
 
