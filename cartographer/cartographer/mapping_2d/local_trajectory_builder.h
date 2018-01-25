@@ -118,10 +118,23 @@ class LocalTrajectoryBuilder {
   //Eigen::Quaterniond cartographer_orientiation_ = Eigen::Quaterniond(1.0,0,0,0);
   Eigen::Quaterniond real_time_orientiation_ = Eigen::Quaterniond(1.0,0,0,0);
 
-  int times_ = 0;
-  bool mode_odo_first_choice_ = 0;
-
   std::unique_ptr<kalman_filter::PoseTracker> pose_tracker_;
+
+  int MODE_A = 0;
+  int MODE_B = 1;
+  int MODE_C = 2;
+
+  int MODE = 0;
+
+  int mode_c_times_ = 300;
+  int mode_c_distance_ = 10;
+  int mode_b_threshold_returns_ = 1500;
+
+  int returns_pre_ = 0;
+  int returns_now_ = 0;
+  
+  int times_ = 0;
+
 
 };
 

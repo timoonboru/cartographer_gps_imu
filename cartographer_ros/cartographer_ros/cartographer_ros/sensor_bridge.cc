@@ -364,10 +364,10 @@ void SensorBridge::HandleOdometryMessage(
     angle_diff = angle;
     double relative_pose[2] = {0,0};
 
-    //relative_pose[0] = dist * sin(angle_diff*M_PI/180.0  + M_PI/2 + yaw_first_time_orientiation_ );
-    //relative_pose[1] = dist * cos(angle_diff*M_PI/180.0  + M_PI/2 + yaw_first_time_orientiation_ );
-    relative_pose[0] = dist * sin(angle_diff*M_PI/180.0 + M_PI/2);
-    relative_pose[1] = dist * cos(angle_diff*M_PI/180.0 + M_PI/2);
+    relative_pose[0] = dist * sin(angle_diff*M_PI/180.0  + M_PI/2 + yaw_first_time_orientiation_ );
+    relative_pose[1] = dist * cos(angle_diff*M_PI/180.0  + M_PI/2 + yaw_first_time_orientiation_ );
+    //relative_pose[0] = dist * sin(angle_diff*M_PI/180.0 + M_PI/2);
+    //relative_pose[1] = dist * cos(angle_diff*M_PI/180.0 + M_PI/2);
 
     //printf("senser bridge --> lat dist  %.10lf \n",relative_pose[0]);
     //printf("senser bridge --> lon dist  %.10lf \n",relative_pose[1]);
@@ -443,7 +443,7 @@ void SensorBridge::HandleImuMessage(const string& sensor_id,
       sensor_id, time,
       sensor_to_tracking->rotation() * ToEigen(msg->linear_acceleration),
       sensor_to_tracking->rotation() * ToEigen(msg->angular_velocity),
-      sensor_to_tracking->rotation() * msg_orientiation_); //mnf
+      sensor_to_tracking->rotation() * real_time_orientiation_); //mnf
   }
 }
 

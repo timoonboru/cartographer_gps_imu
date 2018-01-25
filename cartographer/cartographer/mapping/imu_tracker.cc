@@ -66,8 +66,8 @@ void ImuTracker::AddImuLinearAccelerationObservation(
   orientation_ = (orientation_ * rotation).normalized();
   if((orientiation.x() != 0) || (orientiation.y() != 0) || (orientiation.z() != 0))
     orientation_ = orientiation; //mnf
-  CHECK_GT((orientation_ * gravity_vector_).z(), 0.);
-  CHECK_GT((orientation_ * gravity_vector_).normalized().z(), 0.99);
+  //CHECK_GT((orientation_ * gravity_vector_).z(), 0.);
+  //CHECK_GT((orientation_ * gravity_vector_).normalized().z(), 0.99);
 }
 
 void ImuTracker::AddImuAngularVelocityObservation(

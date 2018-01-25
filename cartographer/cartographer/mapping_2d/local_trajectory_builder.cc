@@ -160,37 +160,16 @@ LocalTrajectoryBuilder::AddAccumulatedRangeData(
   const transform::Rigid3d odometry_prediction =
       pose_estimate_ * odometry_correction_;
 
+  //mnf record returns for choose MODE_A and MODE_B
+  int num_returns = range_data.returns.size();
+  returns_now_ = num_returns;
+  returns_pre_ = returns_now_;
+
+
       //odometry_correction_ = transform::Rigid3d::Identity();
 
-  //LOG(INFO)<<"odometry_correction_"<<odometry_correction_;
   const transform::Rigid3d model_prediction = pose_estimate_;
 
-/*
-  Eigen::Quaterniond good_orientiation;
-
-  good_orientiation = odometry_prediction.rotation();
-
-  if((real_time_orientiation_.x() != 0) || (real_time_orientiation_.y() != 0)
-        || (real_time_orientiation_.z() != 0))
-  {
-    double yaw_real_time_orientiation =
-      ::cartographer::transform::GetYaw(real_time_orientiation_);
-    double yaw_odometry_prediction =
-      ::cartographer::transform::GetYaw(odometry_prediction.rotation());
-    double result = (yaw_real_time_orientiation - yaw_odometry_prediction)
-          *(yaw_real_time_orientiation - yaw_odometry_prediction);
-
-    if(result > 0.00081)
-    {
-
-      good_orientiation = real_time_orientiation_;
-    }
-  }
-
-  const transform::Rigid3d& pose_prediction =
-    transform::Rigid3d(odometry_prediction.translation(),
-      good_orientiation);
-*/
   const transform::Rigid3d& pose_prediction = odometry_prediction;
 
 
@@ -213,13 +192,11 @@ LocalTrajectoryBuilder::AddAccumulatedRangeData(
     return nullptr;
   }
 
-
-
   ScanMatch(time, pose_prediction, tracking_to_tracking_2d,
             range_data_in_tracking_2d, &pose_estimate_);
   odometry_correction_ = transform::Rigid3d::Identity();
 
-  if (!odometry_state_tracker_.empty() && !mode_odo_first_choice_) {
+  if (!odometry_state_tracker_.empty()) {
     // We add an odometry state, so that the correction from the scan matching
     // is not removed by the next odometry data we get.
     odometry_state_tracker_.AddOdometryState(
@@ -231,16 +208,15 @@ LocalTrajectoryBuilder::AddAccumulatedRangeData(
 
   // Improve the velocity estimate.
   if (last_scan_match_time_ > common::Time::min() &&
-      time > last_scan_match_time_  && times_ != 299 ) {
+      time > last_scan_match_time_  && times_ != (mode_c_times_-1) ) {
     const double delta_t = common::ToSeconds(time - last_scan_match_time_);
     // This adds the observed difference in velocity that would have reduced the
     // error to zero.
     velocity_estimate_ += (pose_estimate_.translation().head<2>() -
                            model_prediction.translation().head<2>()) /
-                          delta_t;
-    last_scan_match_time_ = time_;                      
-    
+                          delta_t;                    
   }
+  last_scan_match_time_ = time_;     //mnf where bug for features_map (MODE_A)
 
   // Remove the untracked z-component which floats around 0 in the UKF.
   const auto translation = pose_estimate_.translation();
@@ -270,11 +246,6 @@ LocalTrajectoryBuilder::AddAccumulatedRangeData(
   active_submaps_.InsertRangeData(
       TransformRangeData(range_data_in_tracking_2d,
                          transform::Embed3D(pose_estimate_2d.cast<float>())));
-
-  //LOG(INFO) << "real_time_orientiation_"<<real_time_orientiation_.w()
-  //<<" "<<real_time_orientiation_.x()
-  //<<" "<<real_time_orientiation_.y()
-  //<<" "<<real_time_orientiation_.z();
 
   //LOG(INFO) << "pose_estimate_2d"<<pose_estimate_2d;
   //LOG(INFO) << "last_pose_estimate_"<<last_pose_estimate_.pose;
@@ -306,18 +277,6 @@ void LocalTrajectoryBuilder::AddImuData(
         }
         )text");
 
-    /*
-trajectory_builder_3d.lua:
-   pose_tracker = {
-      orientation_model_variance = 5e-3,
-      position_model_variance = 0.00654766,
-      velocity_model_variance = 0.53926,
-      -- This disables gravity alignment in local SLAM.
-      imu_gravity_time_constant = 1e9,
-      imu_gravity_variance = 0,
-      num_odometry_states = 1,
-    },
-*/
     const kalman_filter::proto::PoseTrackerOptions options =
         kalman_filter::CreatePoseTrackerOptions(parameter_dictionary.get());
 
@@ -328,7 +287,7 @@ trajectory_builder_3d.lua:
   InitializeImuTracker(time);
 
   Predict(time);
-  //imu_tracker_->AddImuLinearAccelerationObservation(linear_acceleration);
+
   real_time_orientiation_ = orientiation;
 
 
@@ -352,15 +311,12 @@ void LocalTrajectoryBuilder::AddOdometerData(
     LOG(INFO) << "ImuTracker not yet initialized.";
     return;
   }
-
   if (!pose_tracker_) {
     LOG(INFO) << "PoseTracker not yet initialized.";
     return;
   }
-
   Predict(time);
   
-
   pose_tracker_->AddPoseObservation(
       time, odometer_pose,
       Eigen::Matrix<double, 6, 6>::Identity() * 1e-6);
@@ -369,12 +325,12 @@ void LocalTrajectoryBuilder::AddOdometerData(
   kalman_filter::PoseCovariance covariance;
   pose_tracker_->GetPoseEstimateMeanAndCovariance(time , &actual, &covariance);
 
+
+  //mnf use kalman 
   transform::Rigid3d odometer_pose_with_imu = transform::Rigid3d(actual.translation(),imu_tracker_->orientation());
+
+//kalman mat whrite  
 /*
-
-  LOG(WARNING) <<  " odometer_pose = " << odometer_pose; 
-  LOG(WARNING) <<  " actual = " << actual; 
-
   Eigen::Vector3d  actual_t = actual.translation();
   Eigen::Vector3d  gps_t = odometer_pose.translation();
 
@@ -384,21 +340,20 @@ void LocalTrajectoryBuilder::AddOdometerData(
   double odometer_pose_x = gps_t.x();
   double odometer_pose_y = gps_t.y();
 
-  int gps_lat = (int)(odometer_pose_x*10 +250 );
-  int gps_lon = (int)(odometer_pose_y*10 +250 );
+  int gps_lat = (int)(odometer_pose_x*10 +500 );
+  int gps_lon = (int)(odometer_pose_y*10 +500 );
   gps_out_ori.at<uchar>(gps_lat,gps_lon) = 255;
 
-  int gps_lat_kal = (int)(actual_x*10 +250 );
-  int gps_lon_kal = (int)(actual_y*10 +250 );
+  int gps_lat_kal = (int)(actual_x*10 +500 );
+  int gps_lon_kal = (int)(actual_y*10 +500 );
   gps_out_kalman.at<uchar>(gps_lat_kal,gps_lon_kal) = 255;
 
-  imwrite("/home/zkma/OUTMAP2/gps_out_ori.jpg",gps_out_ori);
-  imwrite("/home/zkma/OUTMAP2/gps_out_kalman.jpg",gps_out_kalman);
-*/
+  imwrite("/home/zkma/OUTMAP2/gps_out_ori3.jpg",gps_out_ori);
+  imwrite("/home/zkma/OUTMAP2/gps_out_kalman3.jpg",gps_out_kalman);
+*/ 
 
   if (!odometry_state_tracker_.empty()) {
     const auto& previous_odometry_state = odometry_state_tracker_.newest();
-
     
     const transform::Rigid3d delta =
         previous_odometry_state.odometer_pose.inverse() * odometer_pose_with_imu;
@@ -406,7 +361,7 @@ void LocalTrajectoryBuilder::AddOdometerData(
     //transform::Rigid3d odometer_pose_with_imu = transform::Rigid3d(odometer_pose.translation(),real_time_orientiation_);
     
     const transform::Rigid3d new_pose = previous_odometry_state.state_pose * delta;
-      
+    
     double transform_x = odometer_pose.translation().x() - 
                     pose_estimate_.translation().x(); 
 
@@ -419,30 +374,47 @@ void LocalTrajectoryBuilder::AddOdometerData(
     //LOG(WARNING) <<  " pose_estimate_.translation() " << pose_estimate_.translation().x() <<"and"<< pose_estimate_.translation().y();
     //LOG(WARNING) <<  " dist = " << dist<< " times_ = "<<times_; 
 
-    if( dist  > 5 )
+    if(times_ > 1)
     {
-      mode_odo_first_choice_ = 1;
-      times_ = 300;
-      //odometry_correction_ = pose_estimate_.inverse() * odometer_pose_with_imu;
-
+      times_--;
+      MODE = MODE_C;
     }
-
-    if(times_ > 1 )
-    {
-      odometry_correction_ = pose_estimate_.inverse() * odometer_pose_with_imu;
-      //pose_estimate_ = odometer_pose_with_imu;
-      //odometry_correction_ = transform::Rigid3d::Identity();
-      times_ --;
-    } 
     else
     {
-      mode_odo_first_choice_ = 0;
+      if(dist > mode_c_distance_)
+      {
+        times_ = mode_c_times_;
+        MODE = MODE_C;
+      }
+      else
+      {
+        if( (returns_now_ > mode_b_threshold_returns_) && (returns_pre_ > mode_b_threshold_returns_) )
+        {
+          MODE = MODE_A;
+        }
+        else
+        {
+          MODE = MODE_B;
+        }
+      }
+    }
+
+    if( MODE == MODE_A )
+    {
+      odometry_correction_ = transform::Rigid3d::Identity();
+    }
+    if( MODE == MODE_B )
+    {
       odometry_correction_ = pose_estimate_.inverse() * new_pose;
     }
+    if( MODE == MODE_C )
+    {
+      odometry_correction_ = pose_estimate_.inverse() * odometer_pose_with_imu;
+    }
+
   }
   odometry_state_tracker_.AddOdometryState(
     {time, odometer_pose_with_imu, pose_estimate_ * odometry_correction_});
-
 
 }
 
