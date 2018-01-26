@@ -333,6 +333,8 @@ void SensorBridge::HandleOdometryMessage(
     real_time_lat_ = (double)msg->pose.pose.position.x;
 
     real_time_lon_ = (double)msg->pose.pose.position.z;
+
+    double rtk = (double)msg->pose.pose.orientation.x;
     
     //printf("lat %.10lf \n",real_time_lat_);
     //printf("lon %.10lf \n",real_time_lon_);
@@ -377,7 +379,7 @@ void SensorBridge::HandleOdometryMessage(
     
     trajectory_builder_->AddOdometerData(
         sensor_id, time,
-        carto::transform::Rigid3d({relative_pose[0],relative_pose[1],0},
+        carto::transform::Rigid3d({relative_pose[0],relative_pose[1],rtk},
           {1.0,0,0,0}));
 
     //mnf

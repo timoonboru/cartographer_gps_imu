@@ -214,9 +214,10 @@ LocalTrajectoryBuilder::AddAccumulatedRangeData(
     // error to zero.
     velocity_estimate_ += (pose_estimate_.translation().head<2>() -
                            model_prediction.translation().head<2>()) /
-                          delta_t;                    
+                          delta_t; 
+    last_scan_match_time_ = time_;                    
   }
-  last_scan_match_time_ = time_;     //mnf where bug for features_map (MODE_A)
+  //last_scan_match_time_ = time_;     //mnf where bug for features_map (MODE_A)
 
   // Remove the untracked z-component which floats around 0 in the UKF.
   const auto translation = pose_estimate_.translation();
@@ -305,7 +306,7 @@ cv::Mat gps_out_kalman = cv::Mat::zeros(1500,1500,CV_8UC1);
 int tim = 0;
 
 void LocalTrajectoryBuilder::AddOdometerData(
-    const common::Time time, const transform::Rigid3d& odometer_pose) {
+    const common::Time time, const transform::Rigid3d& odometer_pose_with_rtk) {
   if (imu_tracker_ == nullptr) {
     // Until we've initialized the IMU tracker we do not want to call Predict().
     LOG(INFO) << "ImuTracker not yet initialized.";
@@ -316,7 +317,12 @@ void LocalTrajectoryBuilder::AddOdometerData(
     return;
   }
   Predict(time);
-  
+
+  Eigen::Vector3d  odometer_pose_translation = odometer_pose_with_rtk.translation();
+  double rtk = odometer_pose_translation.z();
+  transform::Rigid3d odometer_pose = transform::Rigid3d({odometer_pose_translation.x(),odometer_pose_translation.y(),0},
+          {1.0,0,0,0});
+
   pose_tracker_->AddPoseObservation(
       time, odometer_pose,
       Eigen::Matrix<double, 6, 6>::Identity() * 1e-6);
@@ -325,10 +331,17 @@ void LocalTrajectoryBuilder::AddOdometerData(
   kalman_filter::PoseCovariance covariance;
   pose_tracker_->GetPoseEstimateMeanAndCovariance(time , &actual, &covariance);
 
-
+  transform::Rigid3d odometer_pose_with_imu;
   //mnf use kalman 
-  transform::Rigid3d odometer_pose_with_imu = transform::Rigid3d(actual.translation(),imu_tracker_->orientation());
-
+  if(rtk == 1)
+  {
+    odometer_pose_with_imu = transform::Rigid3d(actual.translation(),imu_tracker_->orientation());
+  }
+  else
+  {
+    odometer_pose_with_imu = transform::Rigid3d(odometer_pose.translation(),imu_tracker_->orientation());
+  }
+  
 //kalman mat whrite  
 /*
   Eigen::Vector3d  actual_t = actual.translation();
@@ -374,6 +387,7 @@ void LocalTrajectoryBuilder::AddOdometerData(
     //LOG(WARNING) <<  " pose_estimate_.translation() " << pose_estimate_.translation().x() <<"and"<< pose_estimate_.translation().y();
     //LOG(WARNING) <<  " dist = " << dist<< " times_ = "<<times_; 
 
+/*
     if(times_ > 1)
     {
       times_--;
@@ -390,7 +404,33 @@ void LocalTrajectoryBuilder::AddOdometerData(
       {
         if( (returns_now_ > mode_b_threshold_returns_) && (returns_pre_ > mode_b_threshold_returns_) )
         {
-          MODE = MODE_A;
+          MODE = MODE_B;
+        }
+        else
+        {
+          MODE = MODE_B;
+        }
+      }
+    }
+*/
+
+    if((returns_now_ > mode_b_threshold_returns_) && (returns_pre_ > mode_b_threshold_returns_))
+    {
+      MODE = MODE_A;
+    }
+    else
+    {
+      if(dist > mode_c_distance_)
+      {
+        times_ = mode_c_times_;
+        MODE = MODE_C;
+      }
+      else
+      {
+        if( times_ > 1 )
+        {
+          MODE = MODE_C;
+          times_--;
         }
         else
         {
@@ -402,10 +442,12 @@ void LocalTrajectoryBuilder::AddOdometerData(
     if( MODE == MODE_A )
     {
       odometry_correction_ = transform::Rigid3d::Identity();
+      LOG(WARNING) <<  " MODE == MODE_A " ; 
     }
     if( MODE == MODE_B )
     {
       odometry_correction_ = pose_estimate_.inverse() * new_pose;
+      //LOG(WARNING) <<  " MODE == MODE_B " ; 
     }
     if( MODE == MODE_C )
     {

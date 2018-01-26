@@ -126,8 +126,8 @@ class LocalTrajectoryBuilder {
 
   int MODE = 0;
 
-  int mode_c_times_ = 300;
-  int mode_c_distance_ = 10;
+  int mode_c_times_ = 100;
+  int mode_c_distance_ = 5;
   int mode_b_threshold_returns_ = 1500;
 
   int returns_pre_ = 0;
