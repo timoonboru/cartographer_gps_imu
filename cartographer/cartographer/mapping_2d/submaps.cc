@@ -235,6 +235,7 @@ void ActiveSubmaps::AddSubmap(const Eigen::Vector2f& origin) {
                                             Eigen::Vector2d::Ones(),
                 CellLimits(kInitialSubmapSize, kInitialSubmapSize)),
       origin));
+  //mnf   the origin of new submap is the origin of the first range data
   
 /*
   LOG(INFO)<<"ActiveSubmaps::AddSubmap"<<  origin.x()<<"   "<<origin.y();

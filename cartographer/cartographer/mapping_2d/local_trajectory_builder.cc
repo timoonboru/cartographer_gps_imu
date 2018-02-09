@@ -75,6 +75,7 @@ void LocalTrajectoryBuilder::ScanMatch(
   //const sensor::PointCloud filtered_point_cloud_in_tracking_2d =
   //    adaptive_voxel_filter.Filter(range_data_in_tracking_2d.returns);
   const sensor::PointCloud filtered_point_cloud_in_tracking_2d = range_data_in_tracking_2d.returns;
+  //mnf returns and misses :=  RELATE TO pose_now
   double score_real_time = 0;
   if (options_.use_online_correlative_scan_matching()) {
     score_real_time = real_time_correlative_scan_matcher_.Match(
@@ -151,6 +152,12 @@ LocalTrajectoryBuilder::AddHorizontalRangeData(
         time, sensor::TransformRangeData(accumulated_range_data_,
                                          tracking_delta.inverse()));
   }
+
+  //mnf
+  // origin:= first_pose_estimate_ RELATE TO pose_now
+  // (0,0) := pose_now
+  // returns and misses :=  RELATE TO pose_now
+
   return nullptr;
 }
 
@@ -181,7 +188,7 @@ LocalTrajectoryBuilder::AddAccumulatedRangeData(
           Eigen::Quaterniond(Eigen::AngleAxisd(
               -transform::GetYaw(pose_prediction), Eigen::Vector3d::UnitZ())) *
           pose_prediction.rotation());
-  //mnf tracking_to_tracking_2d = map_to_tracking_2d * tracking_to_map;
+  //mnf tracking_to_tracking_2d = map_to_tracking_2d * tracking_to_map(local);
 
   const sensor::RangeData range_data_in_tracking_2d =
       TransformAndFilterRangeData(tracking_to_tracking_2d.cast<float>(),
@@ -250,6 +257,8 @@ LocalTrajectoryBuilder::AddAccumulatedRangeData(
 
   //LOG(INFO) << "pose_estimate_2d"<<pose_estimate_2d;
   //LOG(INFO) << "last_pose_estimate_"<<last_pose_estimate_.pose;
+
+  //mnf 1.get insertion_submaps 2.InsertRangeData ???  ---> ptr
 
   return common::make_unique<InsertionResult>(InsertionResult{
       time, std::move(insertion_submaps), tracking_to_tracking_2d,

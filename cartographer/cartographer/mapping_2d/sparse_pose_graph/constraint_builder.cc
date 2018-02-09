@@ -169,9 +169,9 @@ void ConstraintBuilder::ComputeConstraint(
     std::unique_ptr<ConstraintBuilder::Constraint>* constraint) {
   const transform::Rigid2d initial_pose =
       ComputeSubmapPose(*submap) * initial_relative_pose;
-      // initial_pose := Submap(i).T2G * initial_relative_pose
-      //              := Submap(i).T2G * Submap(i).G2T * Node(j).T2G
-      //              := Node(j).T2G  (map <- scan j)
+      // initial_pose := Submap(i).T2L * initial_relative_pose
+      //              := Submap(i).T2L * Submap(i).G2T * Node(j).T2G
+      //              := Node(j).T2L  (map <- scan j)
   const SubmapScanMatcher* const submap_scan_matcher =
       GetSubmapScanMatcher(submap_id);
   const sensor::PointCloud filtered_point_cloud =
@@ -226,6 +226,8 @@ void ConstraintBuilder::ComputeConstraint(
 
   const transform::Rigid2d constraint_transform =
       ComputeSubmapPose(*submap).inverse() * pose_estimate;
+      //mnf Submap(i).L2T * Node(j).T2L
+
   constraint->reset(new Constraint{submap_id,
                                    node_id,
                                    {transform::Embed3D(constraint_transform),
@@ -233,8 +235,8 @@ void ConstraintBuilder::ComputeConstraint(
                                     options_.loop_closure_rotation_weight()},
                                    Constraint::INTER_SUBMAP});
   /*
-  if (options_.log_matches()) {
-  //{
+  //if (options_.log_matches()) {
+  {
     std::ostringstream info;
     info << "Node " << node_id << " with " << filtered_point_cloud.size()
          << " points on submap " << submap_id << std::fixed;
@@ -255,7 +257,8 @@ void ConstraintBuilder::ComputeConstraint(
     info << " constraint_transform " << constraint_transform ;
     LOG(INFO) << info.str();
     
-  }*/
+  }
+  */
 }
 
 void ConstraintBuilder::FinishComputation(const int computation_index) {
