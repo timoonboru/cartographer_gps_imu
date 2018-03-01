@@ -222,9 +222,9 @@ LocalTrajectoryBuilder::AddAccumulatedRangeData(
     velocity_estimate_ += (pose_estimate_.translation().head<2>() -
                            model_prediction.translation().head<2>()) /
                           delta_t; 
-    last_scan_match_time_ = time_;                    
+    //last_scan_match_time_ = time_;                    
   }
-  //last_scan_match_time_ = time_;     //mnf where bug for features_map (MODE_A)
+  last_scan_match_time_ = time_;     //mnf where bug for features_map (MODE_A)
 
   // Remove the untracked z-component which floats around 0 in the UKF.
   const auto translation = pose_estimate_.translation();
